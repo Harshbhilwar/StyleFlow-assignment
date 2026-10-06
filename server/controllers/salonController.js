@@ -1,10 +1,9 @@
+const mongoose = require("mongoose");
+
 const Salon = require("../models/Salon");
 const Service = require("../models/Service");
 const Stylist = require("../models/Stylist");
 
-// ==========================================
-// GET ALL SALONS
-// ==========================================
 
 const getSalons = async (req, res) => {
   try {
@@ -81,20 +80,15 @@ const getSalons = async (req, res) => {
   }
 };
 
-// ==========================================
-// CREATE SALON
-// ==========================================
+
 
 const createSalon = async (req, res) => {
   try {
-    if (
-      !req.user ||
-      req.user.role !== "vendor"
-    ) {
+    // Only vendors can create salons
+    if (!req.user || req.user.role !== "vendor") {
       return res.status(403).json({
         success: false,
-        message:
-          "Vendor access required",
+        message: "Vendor access required",
       });
     }
 
@@ -106,35 +100,125 @@ const createSalon = async (req, res) => {
       phone,
       image,
       rating,
+      serviceIds = [],
+      stylistIds = [],
     } = req.body;
 
+    
     if (!name || !address || !city) {
       return res.status(400).json({
         success: false,
-        message:
-          "Name, address and city are required",
+        message: "Name, address and city are required",
       });
     }
 
+    
+    const selectedServiceIds = Array.isArray(serviceIds)
+      ? [...new Set(serviceIds)]
+      : [];
+
+    const selectedStylistIds = Array.isArray(stylistIds)
+      ? [...new Set(stylistIds)]
+      : [];
+
+    
+    const invalidServiceIds = selectedServiceIds.some(
+      (id) => !mongoose.Types.ObjectId.isValid(id)
+    );
+
+    const invalidStylistIds = selectedStylistIds.some(
+      (id) => !mongoose.Types.ObjectId.isValid(id)
+    );
+
+    if (invalidServiceIds || invalidStylistIds) {
+      return res.status(400).json({
+        success: false,
+        message: "One or more selected IDs are invalid",
+      });
+    }
+    const vendorSalons = await Salon.find({
+      owner: req.user.id,
+      isActive: true,
+    }).select("_id");
+
+    const vendorSalonIds = vendorSalons.map(
+      (salon) => salon._id
+    );
+
+    const sourceServices =
+      selectedServiceIds.length > 0
+        ? await Service.find({
+            _id: {
+              $in: selectedServiceIds,
+            },
+            salon: {
+              $in: vendorSalonIds,
+            },
+            isActive: true,
+          })
+        : [];
+
+    if (
+      sourceServices.length !==
+      selectedServiceIds.length
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "One or more selected services are unavailable",
+      });
+    }
+
+    const sourceStylists =
+      selectedStylistIds.length > 0
+        ? await Stylist.find({
+            _id: {
+              $in: selectedStylistIds,
+            },
+            salon: {
+              $in: vendorSalonIds,
+            },
+            isActive: true,
+          })
+        : [];
+
+    if (
+      sourceStylists.length !==
+      selectedStylistIds.length
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "One or more selected stylists are unavailable",
+      });
+    }
+
+    // CREATE NEW SALON
     const salon = await Salon.create({
       name: name.trim(),
 
       description:
-        description?.trim() || "",
+        typeof description === "string"
+          ? description.trim()
+          : "",
 
       address: address.trim(),
 
       city: city.trim(),
 
-      phone: phone?.trim() || "",
+      phone:
+        typeof phone === "string"
+          ? phone.trim()
+          : "",
 
       image:
-        image?.trim() ||
-        "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1000&q=80",
+        typeof image === "string" &&
+        image.trim()
+          ? image.trim()
+          : "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1000&q=80",
 
       rating:
-        rating !== undefined &&
-        rating !== ""
+        rating !== undefined && rating !== ""
           ? Number(rating)
           : 4.5,
 
@@ -143,29 +227,66 @@ const createSalon = async (req, res) => {
       isActive: true,
     });
 
-    res.status(201).json({
+    if (sourceServices.length > 0) {
+      const servicesToCreate = sourceServices.map(
+        (service) => {
+          const serviceData = service.toObject();
+
+          delete serviceData._id;
+          delete serviceData.__v;
+          delete serviceData.createdAt;
+          delete serviceData.updatedAt;
+
+          return {
+            ...serviceData,
+            salon: salon._id,
+            isActive: true,
+          };
+        }
+      );
+
+      await Service.insertMany(servicesToCreate);
+    }
+
+    if (sourceStylists.length > 0) {
+      const stylistsToCreate = sourceStylists.map(
+        (stylist) => {
+          const stylistData = stylist.toObject();
+
+          delete stylistData._id;
+          delete stylistData.__v;
+          delete stylistData.createdAt;
+          delete stylistData.updatedAt;
+
+          return {
+            ...stylistData,
+
+            salon: salon._id,
+
+            isActive: true,
+          };
+        }
+      );
+
+      await Stylist.insertMany(stylistsToCreate);
+    }
+
+
+    return res.status(201).json({
       success: true,
-      message:
-        "Salon created successfully",
+      message: "Salon created successfully",
       salon,
     });
   } catch (error) {
-    console.error(
-      "Create salon error:",
-      error
-    );
+    console.error("Create salon error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message:
-        "Failed to create salon",
+      message: "Failed to create salon",
     });
   }
 };
 
-// ==========================================
-// GET SINGLE SALON
-// ==========================================
 
 const getSalonById = async (
   req,
@@ -208,10 +329,6 @@ const getSalonById = async (
   }
 };
 
-// ==========================================
-// GET SERVICES
-// ==========================================
-
 const getSalonServices = async (
   req,
   res
@@ -245,10 +362,6 @@ const getSalonServices = async (
   }
 };
 
-// ==========================================
-// GET STYLISTS
-// ==========================================
-
 const getSalonStylists = async (
   req,
   res
@@ -280,10 +393,6 @@ const getSalonStylists = async (
     });
   }
 };
-
-// ==========================================
-// CREATE STYLIST
-// ==========================================
 
 const createStylist = async (
   req,
@@ -320,8 +429,7 @@ const createStylist = async (
       });
     }
 
-    // Make sure this salon belongs
-    // to the logged-in vendor.
+    
     const salon =
       await Salon.findOne({
         _id: salonId,

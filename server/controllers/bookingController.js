@@ -5,9 +5,6 @@ const Service = require("../models/Service");
 const Stylist = require("../models/Stylist");
 const Salon = require("../models/Salon");
 
-// ==================================================
-// HELPERS
-// ==================================================
 
 const timeToMinutes = (time) => {
   if (!time || typeof time !== "string") {
@@ -55,9 +52,6 @@ const isValidObjectId = (id) => {
   return mongoose.Types.ObjectId.isValid(id);
 };
 
-// ==================================================
-// ROBUST STYLIST LOOKUP
-// ==================================================
 
 const findStylistForSalon = async (stylistId, salonId) => {
   try {
@@ -68,9 +62,6 @@ const findStylistForSalon = async (stylistId, salonId) => {
     console.log("Requested stylistId:", requestedStylistId);
     console.log("Requested salonId:", requestedSalonId);
 
-    // Get all active stylists belonging to the selected salon.
-    // We deliberately avoid findById() because the current
-    // database is successfully returning these records by salon.
     const salonStylists = await Stylist.find({
       salon: requestedSalonId,
       isActive: true,
@@ -88,7 +79,6 @@ const findStylistForSalon = async (stylistId, salonId) => {
       };
     }
 
-    // Match ObjectId safely using Mongoose's equals().
     const stylist = salonStylists.find((item) => {
       if (item._id && typeof item._id.equals === "function") {
         return item._id.equals(requestedStylistId);
@@ -144,11 +134,6 @@ const findStylistForSalon = async (stylistId, salonId) => {
   }
 };
 
-// ==================================================
-// GET AVAILABLE SLOTS
-// GET /api/bookings/available-slots
-// ==================================================
-
 const getAvailableSlots = async (req, res) => {
   try {
     let {
@@ -171,10 +156,6 @@ const getAvailableSlots = async (req, res) => {
       bookingDate,
     });
 
-    // --------------------------------------------------
-    // REQUIRED INPUT
-    // --------------------------------------------------
-
     if (!salonId || !serviceId || !stylistId || !bookingDate) {
       return res.status(400).json({
         success: false,
@@ -182,10 +163,6 @@ const getAvailableSlots = async (req, res) => {
           "salonId, serviceId, stylistId and bookingDate are required",
       });
     }
-
-    // --------------------------------------------------
-    // ID VALIDATION
-    // --------------------------------------------------
 
     if (
       !isValidObjectId(salonId) ||
@@ -198,10 +175,6 @@ const getAvailableSlots = async (req, res) => {
       });
     }
 
-    // --------------------------------------------------
-    // SALON
-    // --------------------------------------------------
-
     const salon = await Salon.findById(salonId);
 
     if (!salon || !salon.isActive) {
@@ -210,10 +183,6 @@ const getAvailableSlots = async (req, res) => {
         message: "Salon not found",
       });
     }
-
-    // --------------------------------------------------
-    // SERVICE
-    // --------------------------------------------------
 
     const service = await Service.findById(serviceId);
 
@@ -231,9 +200,6 @@ const getAvailableSlots = async (req, res) => {
       });
     }
 
-    // --------------------------------------------------
-    // STYLIST
-    // --------------------------------------------------
 
     const stylistResult = await findStylistForSalon(
       stylistId,
@@ -263,10 +229,6 @@ const getAvailableSlots = async (req, res) => {
       });
     }
 
-    // --------------------------------------------------
-    // SERVICE TIME
-    // --------------------------------------------------
-
     const serviceDuration = Number(service.duration);
     const bufferTime = Number(service.bufferTime || 0);
 
@@ -282,10 +244,6 @@ const getAvailableSlots = async (req, res) => {
         message: "Invalid service duration",
       });
     }
-
-    // --------------------------------------------------
-    // WORKING HOURS
-    // --------------------------------------------------
 
     const workingStart = timeToMinutes(
       stylist.workingHours?.start
@@ -305,10 +263,6 @@ const getAvailableSlots = async (req, res) => {
         message: "Invalid stylist working hours",
       });
     }
-
-    // --------------------------------------------------
-    // EXISTING BOOKINGS
-    // --------------------------------------------------
 
     const allDateBookings = await Booking.find({
         bookingDate,
@@ -361,9 +315,6 @@ console.log(
           !Number.isNaN(range.end)
       );
 
-    // --------------------------------------------------
-    // BREAKS
-    // --------------------------------------------------
 
     const breakRanges = (stylist.breaks || [])
       .map((item) => ({
@@ -376,9 +327,6 @@ console.log(
           !Number.isNaN(range.end)
       );
 
-    // --------------------------------------------------
-    // GENERATE SLOTS
-    // --------------------------------------------------
 
     const slots = [];
 
@@ -480,11 +428,6 @@ console.log(
   }
 };
 
-// ==================================================
-// CREATE BOOKING
-// POST /api/bookings
-// ==================================================
-
 const createBooking = async (req, res) => {
   try {
     let {
@@ -502,10 +445,6 @@ const createBooking = async (req, res) => {
     bookingDate = bookingDate?.trim();
     startTime = startTime?.trim();
 
-    // --------------------------------------------------
-    // REQUIRED INPUT
-    // --------------------------------------------------
-
     if (
       !salonId ||
       !serviceId ||
@@ -519,21 +458,12 @@ const createBooking = async (req, res) => {
           "salonId, serviceId, stylistId, bookingDate and startTime are required",
       });
     }
-
-    // --------------------------------------------------
-    // AUTHENTICATION
-    // --------------------------------------------------
-
     if (!req.user?.id) {
       return res.status(401).json({
         success: false,
         message: "Authentication required",
       });
     }
-
-    // --------------------------------------------------
-    // ID VALIDATION
-    // --------------------------------------------------
 
     if (
       !isValidObjectId(salonId) ||
@@ -546,10 +476,6 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // --------------------------------------------------
-    // SALON
-    // --------------------------------------------------
-
     const salon = await Salon.findById(salonId);
 
     if (!salon || !salon.isActive) {
@@ -558,10 +484,6 @@ const createBooking = async (req, res) => {
         message: "Salon not found",
       });
     }
-
-    // --------------------------------------------------
-    // SERVICE
-    // --------------------------------------------------
 
     const service = await Service.findById(serviceId);
 
@@ -578,10 +500,6 @@ const createBooking = async (req, res) => {
         message: "Service does not belong to this salon",
       });
     }
-
-    // --------------------------------------------------
-    // STYLIST
-    // --------------------------------------------------
 
     const stylistResult = await findStylistForSalon(
       stylistId,
@@ -611,10 +529,6 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // --------------------------------------------------
-    // START TIME
-    // --------------------------------------------------
-
     const requestedStart =
       timeToMinutes(startTime);
 
@@ -626,9 +540,6 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // --------------------------------------------------
-    // DURATION
-    // --------------------------------------------------
 
     const serviceDuration = Number(service.duration);
     const bufferTime = Number(
@@ -644,9 +555,6 @@ const createBooking = async (req, res) => {
       requestedStart +
       serviceDuration;
 
-    // --------------------------------------------------
-    // WORKING HOURS
-    // --------------------------------------------------
 
     const workingStart = timeToMinutes(
       stylist.workingHours?.start
@@ -667,9 +575,6 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // --------------------------------------------------
-    // BREAK CONFLICT
-    // --------------------------------------------------
 
     const breakConflict = (stylist.breaks || []).some(
       (item) => {
@@ -699,10 +604,6 @@ const createBooking = async (req, res) => {
           "Selected slot overlaps with stylist break",
       });
     }
-
-    // --------------------------------------------------
-    // BOOKING CONFLICT
-    // --------------------------------------------------
 
     const allDateBookings = await Booking.find({
   bookingDate,
@@ -752,9 +653,6 @@ const existingBookings = allDateBookings.filter(
       });
     }
 
-    // --------------------------------------------------
-    // CREATE BOOKING
-    // --------------------------------------------------
 
     const booking = await Booking.create({
       customer: req.user.id,
@@ -769,9 +667,6 @@ const existingBookings = allDateBookings.filter(
       notes: notes || "",
     });
 
-    // --------------------------------------------------
-    // POPULATE BOOKING
-    // --------------------------------------------------
 
     const populatedBooking =
       await Booking.findById(booking._id)
@@ -811,10 +706,6 @@ const existingBookings = allDateBookings.filter(
   }
 };
 
-// ==================================================
-// GET MY BOOKINGS
-// GET /api/bookings/my-bookings
-// ==================================================
 
 const getMyBookings = async (req, res) => {
   try {
@@ -863,10 +754,6 @@ const getMyBookings = async (req, res) => {
   }
 };
 
-// ==================================================
-// CANCEL BOOKING
-// PATCH /api/bookings/:id/cancel
-// ==================================================
 
 const cancelBooking = async (req, res) => {
   try {
@@ -939,9 +826,6 @@ const cancelBooking = async (req, res) => {
   }
 };
 
-// ==================================================
-// EXPORTS
-// ==================================================
 
 module.exports = {
   getAvailableSlots,

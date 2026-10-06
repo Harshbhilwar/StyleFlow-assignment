@@ -17,10 +17,6 @@ const {
 const router =
   express.Router();
 
-// ==========================================
-// PUBLIC ROUTES
-// ==========================================
-
 router.get(
   "/",
   getSalons
@@ -41,9 +37,7 @@ router.get(
   getSalonStylists
 );
 
-// ==========================================
-// VENDOR ROUTES
-// ==========================================
+
 
 // Add new salon
 router.post(

@@ -23,12 +23,11 @@ const seedDatabase = async () => {
     await Service.deleteMany({});
     await Salon.deleteMany({});
 
-    // ==========================================
-    // USERS
-    // ==========================================
+    //User
 
+    const seedPassword = process.env.SEED_PASSWORD;
     const hashedPassword = await bcrypt.hash(
-      "12345678",
+      seedPassword,
       10
     );
 
@@ -64,14 +63,9 @@ const seedDatabase = async () => {
       }
     );
 
-    // ==========================================
-    // SALONS
-    // ==========================================
-
+    //Salon
     const salons = await Salon.create([
-      // -----------------------------
-      // BENGALURU
-      // -----------------------------
+
       {
         name: "Urban Cuts Studio",
         description:
@@ -109,9 +103,6 @@ const seedDatabase = async () => {
           "https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=1000&q=80",
       },
 
-      // -----------------------------
-      // NEW DELHI
-      // -----------------------------
       {
         name: "Urban Glow Studio",
         description:
@@ -137,9 +128,6 @@ const seedDatabase = async () => {
           "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=1000&q=80",
       },
 
-      // -----------------------------
-      // NOIDA
-      // -----------------------------
       {
         name: "Noida Grooming Co.",
         description:
@@ -165,9 +153,6 @@ const seedDatabase = async () => {
           "https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=1000&q=80",
       },
 
-      // -----------------------------
-      // PUNE
-      // -----------------------------
       {
         name: "Pune Luxe Salon",
         description:
@@ -194,14 +179,9 @@ const seedDatabase = async () => {
       },
     ]);
 
-    // ==========================================
-    // SERVICES
-    // ==========================================
 
     const services = await Service.create([
-      // ------------------------------------------
-      // BENGALURU - Urban Cuts
-      // ------------------------------------------
+
       {
         salon: salons[0]._id,
         name: "Classic Haircut",
@@ -233,9 +213,6 @@ const seedDatabase = async () => {
         bufferTime: 15,
       },
 
-      // ------------------------------------------
-      // BENGALURU - Glow & Go
-      // ------------------------------------------
       {
         salon: salons[1]._id,
         name: "Hair Styling",
@@ -267,9 +244,6 @@ const seedDatabase = async () => {
         bufferTime: 10,
       },
 
-      // ------------------------------------------
-      // BENGALURU - Style Lounge
-      // ------------------------------------------
       {
         salon: salons[2]._id,
         name: "Premium Haircut",
@@ -301,9 +275,6 @@ const seedDatabase = async () => {
         bufferTime: 15,
       },
 
-      // ------------------------------------------
-      // NEW DELHI - Urban Glow
-      // ------------------------------------------
       {
         salon: salons[3]._id,
         name: "Signature Haircut",
@@ -325,9 +296,6 @@ const seedDatabase = async () => {
         bufferTime: 5,
       },
 
-      // ------------------------------------------
-      // NEW DELHI - Capital Style
-      // ------------------------------------------
       {
         salon: salons[4]._id,
         name: "Hair Styling",
@@ -349,9 +317,6 @@ const seedDatabase = async () => {
         bufferTime: 10,
       },
 
-      // ------------------------------------------
-      // NOIDA - Grooming Co.
-      // ------------------------------------------
       {
         salon: salons[5]._id,
         name: "Classic Haircut",
@@ -373,9 +338,6 @@ const seedDatabase = async () => {
         bufferTime: 5,
       },
 
-      // ------------------------------------------
-      // NOIDA - Style Hub
-      // ------------------------------------------
       {
         salon: salons[6]._id,
         name: "Premium Styling",
@@ -397,9 +359,6 @@ const seedDatabase = async () => {
         bufferTime: 10,
       },
 
-      // ------------------------------------------
-      // PUNE - Luxe Salon
-      // ------------------------------------------
       {
         salon: salons[7]._id,
         name: "Luxury Haircut",
@@ -421,9 +380,6 @@ const seedDatabase = async () => {
         bufferTime: 10,
       },
 
-      // ------------------------------------------
-      // PUNE - Urban Trim
-      // ------------------------------------------
       {
         salon: salons[8]._id,
         name: "Urban Haircut",
@@ -446,12 +402,9 @@ const seedDatabase = async () => {
       },
     ]);
 
-    // ==========================================
-    // STYLISTS
-    // ==========================================
 
     const stylists = await Stylist.create([
-      // Bengaluru
+      
       {
         salon: salons[0]._id,
         name: "Rahul Sharma",
@@ -576,7 +529,6 @@ const seedDatabase = async () => {
         ],
       },
 
-      // New Delhi
       {
         salon: salons[3]._id,
         name: "Aarav Malhotra",
@@ -659,7 +611,6 @@ const seedDatabase = async () => {
         ],
       },
 
-      // Noida
       {
         salon: salons[5]._id,
         name: "Rohit Yadav",
@@ -742,7 +693,6 @@ const seedDatabase = async () => {
         ],
       },
 
-      // Pune
       {
         salon: salons[7]._id,
         name: "Aditya Joshi",
@@ -826,9 +776,6 @@ const seedDatabase = async () => {
       },
     ]);
 
-    // ==========================================
-    // DEMO EXISTING BOOKING
-    // ==========================================
 
     const firstService = services[0];
     const firstStylist = stylists[0];
@@ -856,20 +803,6 @@ const seedDatabase = async () => {
         "Demo existing booking for availability testing",
     });
 
-    // ==========================================
-    // SUMMARY
-    // ==========================================
-
-    console.log("");
-    console.log(
-      "======================================"
-    );
-    console.log(
-      "StyleFlow database seeded successfully"
-    );
-    console.log(
-      "======================================"
-    );
 
     console.log(
       `Salons created: ${salons.length}`
@@ -906,11 +839,7 @@ const seedDatabase = async () => {
     console.log(
       "Email: vendor@styleflow.com"
     );
-    console.log("Password: 12345678");
-
-    console.log(
-      "======================================"
-    );
+  
 
     await mongoose.connection.close();
 
